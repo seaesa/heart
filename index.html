@@ -245,6 +245,8 @@
         pointer-events: none;
         opacity: 0;
         transition: opacity 300ms ease;
+        isolation: isolate;
+        contain: paint;
         background: radial-gradient(
           circle,
           rgba(0, 0, 0, 0.12),
@@ -255,6 +257,8 @@
         font-size: clamp(74px, 18vw, 200px);
         font-weight: 700;
         line-height: 1;
+        font-variant-numeric: tabular-nums;
+        will-change: opacity;
       }
 
       #countdownOverlay.show {
@@ -566,6 +570,7 @@
 
       let started = false;
       let spinRaf = 0;
+      let spinInterval = 0;
       let inputLocked = true;
 
       setTimeout(() => {
@@ -612,14 +617,17 @@
           cancelAnimationFrame(spinRaf);
           spinRaf = 0;
         }
+        if (spinInterval) {
+          clearInterval(spinInterval);
+          spinInterval = 0;
+        }
       }
 
       function startCountdownSpin(totalMs) {
         stopCountdownSpin();
         const startTime = performance.now();
-
-        function tick(now) {
-          const elapsed = now - startTime;
+        const applySpin = () => {
+          const elapsed = performance.now() - startTime;
           const progress = Math.min(elapsed / totalMs, 1);
 
           // Accelerate inside css-doodle itself: shorter cycle + deeper Z travel.
@@ -629,15 +637,12 @@
             doodle.style.setProperty("--flow-dur", `${durationSec.toFixed(3)}s`);
             doodle.style.setProperty("--flow-depth", `${depthVmin.toFixed(2)}vmin`);
           }
+          if (progress >= 1) stopCountdownSpin();
+        };
 
-          if (progress < 1) {
-            spinRaf = requestAnimationFrame(tick);
-          } else {
-            spinRaf = 0;
-          }
-        }
-
-        spinRaf = requestAnimationFrame(tick);
+        // Lower update frequency to avoid intermittent compositing glitches.
+        applySpin();
+        spinInterval = setInterval(applySpin, 120);
       }
 
       async function beginTransition() {
