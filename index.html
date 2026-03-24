@@ -245,8 +245,6 @@
         pointer-events: none;
         opacity: 0;
         transition: opacity 300ms ease;
-        isolation: isolate;
-        contain: paint;
         background: radial-gradient(
           circle,
           rgba(0, 0, 0, 0.12),
@@ -257,8 +255,6 @@
         font-size: clamp(74px, 18vw, 200px);
         font-weight: 700;
         line-height: 1;
-        font-variant-numeric: tabular-nums;
-        will-change: opacity;
       }
 
       #countdownOverlay.show {
@@ -567,23 +563,16 @@
       const lowPerfDevice =
         window.matchMedia("(max-width: 768px)").matches ||
         (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
-      const ultraLowPerf =
-        lowPerfDevice || (navigator.deviceMemory && navigator.deviceMemory <= 4);
 
       let started = false;
       let spinRaf = 0;
-      let inputLocked = true;
-
-      setTimeout(() => {
-        inputLocked = false;
-      }, 500);
 
       function createBubbles() {
         const speeds = [
           11, 25, 12, 54, 18, 29, 18, 11, 15, 18, 29, 54, 48, 29, 25, 79, 12, 2,
           9, 16, 8, 5, 7, 24, 21, 36, 10, 27, 14, 33, 19, 28, 13, 40, 16, 26,
         ];
-        const count = ultraLowPerf ? 24 : 36;
+        const count = lowPerfDevice ? 32 : 46;
         for (let i = 0; i < count; i++) {
           const speed = speeds[i % speeds.length];
           const span = document.createElement("span");
@@ -623,21 +612,17 @@
       function startCountdownSpin(totalMs) {
         stopCountdownSpin();
         const startTime = performance.now();
-        let lastAppliedAt = 0;
 
-        const tick = (now) => {
+        function tick(now) {
           const elapsed = now - startTime;
           const progress = Math.min(elapsed / totalMs, 1);
-          if (now - lastAppliedAt >= 34 || progress >= 1) {
-            lastAppliedAt = now;
 
-            // Smooth acceleration with capped updates (~30fps) for stable rendering.
-            const durationSec = 12 - 9.2 * Math.pow(progress, 1.5); // 12s -> ~2.8s
-            const depthVmin = 35 + 28 * Math.pow(progress, 1.25); // 35 -> 63
-            if (doodle) {
-              doodle.style.setProperty("--flow-dur", `${durationSec.toFixed(3)}s`);
-              doodle.style.setProperty("--flow-depth", `${depthVmin.toFixed(2)}vmin`);
-            }
+          // Accelerate inside css-doodle itself: shorter cycle + deeper Z travel.
+          const durationSec = 12 - 9.2 * Math.pow(progress, 1.5); // 12s -> ~2.8s
+          const depthVmin = 35 + 28 * Math.pow(progress, 1.25); // 35 -> 63
+          if (doodle) {
+            doodle.style.setProperty("--flow-dur", `${durationSec.toFixed(3)}s`);
+            doodle.style.setProperty("--flow-depth", `${depthVmin.toFixed(2)}vmin`);
           }
 
           if (progress < 1) {
@@ -645,7 +630,7 @@
           } else {
             spinRaf = 0;
           }
-        };
+        }
 
         spinRaf = requestAnimationFrame(tick);
       }
@@ -688,10 +673,6 @@
       }
 
       document.addEventListener("keydown", (event) => {
-        if (inputLocked) {
-          if (event.code === "Space") event.preventDefault();
-          return;
-        }
         if (event.code === "Space") {
           event.preventDefault();
           beginTransition();
@@ -705,7 +686,6 @@
 
       // Mobile/touch trigger: tap screen to start, same as Space.
       scene1.addEventListener("pointerdown", () => {
-        if (inputLocked) return;
         if (!started && scene1.classList.contains("is-visible")) {
           beginTransition();
         }
@@ -718,11 +698,11 @@
 
         const settings = {
           particles: {
-            length: ultraLowPerf ? 2200 : 3200,
+            length: lowPerfDevice ? 3200 : 4600,
             duration: 3,
-            velocity: ultraLowPerf ? 155 : 170,
+            velocity: lowPerfDevice ? 165 : 180,
             effect: -0.6,
-            size: ultraLowPerf ? 10 : 11,
+            size: lowPerfDevice ? 11 : 12,
           },
         };
 
@@ -900,10 +880,10 @@
           function render() {
             requestAnimationFrame(render);
             const newTime = new Date().getTime() / 800;
-            const deltaTime = Math.min(newTime - (time || newTime), 0.033);
+            const deltaTime = newTime - (time || newTime);
             time = newTime;
             context.clearRect(0, 0, canvas.width, canvas.height);
-            const amount = Math.min(particleRate * deltaTime, ultraLowPerf ? 56 : 84);
+            const amount = particleRate * deltaTime;
             for (let i = 0; i < amount; i++) {
               const pos = pointOnHeart(Math.PI - 2 * Math.PI * Math.random());
               const dir = pos.clone().length(settings.particles.velocity);
