@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Heart Transition</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --scene1-bg: #270f34;
+        --scene2-text: #ea80b0;
+        --transition-ms: 1200ms;
+        --boom-ms: 720ms;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+        font-family: "Segoe UI", sans-serif;
+      }
+
+      .scene {
+        position: fixed;
+        inset: 0;
+        transition:
+          opacity var(--transition-ms) ease,
+          transform var(--transition-ms) ease,
+          filter var(--transition-ms) ease;
+      }
+
+      .scene.is-hidden {
+        opacity: 0;
+        transform: scale(1.04);
+        filter: blur(10px);
+        pointer-events: none;
+      }
+
+      .scene.is-visible {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+        pointer-events: auto;
+      }
+
+      /* SCENE 1 */
+      #scene1 {
+        background: var(--scene1-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        contain: content;
+        overflow: clip;
+        z-index: 3;
+      }
+
+      .scene1-stage {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #scene1 css-doodle {
+        position: relative;
+        z-index: 1;
+        transform-origin: center center;
+        will-change: transform;
+        --flow-dur: 12s;
+        --flow-depth: 35vmin;
+        --color: @p(#51eaea, #fffde1, #ff9d76, #FB3569);
+        --rule: (
+          :doodle {
+            @grid: 30x1 / 18vmin;
+            --deg: @p(-180deg, 180deg);
+          }
+          :container {
+            perspective: 30vmin;
+          }
+          :after, :before {
+            content: '';
+            background: var(--color);
+            @place-cell: @r(100%) @r(100%);
+            @size: @r(6px);
+            @shape: heart;
+          }
+
+          @place-cell: center;
+          @size: 100%;
+
+          box-shadow: @m2(0 0 50px var(--color));
+          background: @m100(
+            radial-gradient(var(--color) 50%, transparent 0)
+            @r(-20%, 120%) @r(-20%, 100%) / 1px 1px
+            no-repeat
+          );
+
+          will-change: transform, opacity;
+          animation: scale-up @var(--flow-dur) linear infinite;
+          animation-delay: calc(-1 * @var(--flow-dur) / @I * @i);
+
+          @keyframes scale-up {
+            0%, 95.01%, 100% {
+              transform: translateZ(0) rotate(0);
+              opacity: 0;
+            }
+            10% {
+              opacity: 1;
+            }
+            95% {
+              transform: translateZ(@var(--flow-depth)) rotateZ(@var(--deg));
+            }
+          }
+        );
+      }
+
+      .scene1-ui {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        user-select: none;
+        pointer-events: none;
+      }
+
+      .hand {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: clamp(96px, 11vw, 156px);
+        aspect-ratio: 1 / 1.18;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        animation: handPulse 2s ease-in-out infinite;
+        opacity: 0.98;
+      }
+
+      .hand::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background:
+          radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 50%),
+          radial-gradient(circle at 60% 70%, rgba(255, 214, 190, 0.35), rgba(255, 173, 133, 0.08) 65%, rgba(255, 130, 105, 0.04) 100%);
+        border: 1px solid rgba(255, 209, 177, 0.45);
+        box-shadow:
+          0 10px 26px rgba(255, 141, 138, 0.24),
+          inset 0 1px 12px rgba(255, 255, 255, 0.35);
+      }
+
+      .hand::after {
+        content: "";
+        position: absolute;
+        width: 138%;
+        height: 138%;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 185, 164, 0.24);
+        box-shadow: 0 0 36px rgba(255, 150, 140, 0.24);
+        animation: handRing 2s ease-in-out infinite;
+      }
+
+      .hand .palm {
+        position: relative;
+        z-index: 1;
+        color: #ffd9bf;
+        font-size: clamp(52px, 6.4vw, 88px);
+        line-height: 1;
+        filter:
+          drop-shadow(0 4px 12px rgba(255, 140, 124, 0.45))
+          drop-shadow(0 0 10px rgba(255, 203, 182, 0.45));
+      }
+
+      .hand.left {
+        left: 18vw;
+        animation-delay: 0s;
+      }
+
+      .hand.right {
+        right: 18vw;
+        animation: handPulseRight 2s ease-in-out infinite;
+        animation-delay: 0.45s;
+        transform: translateY(-50%) scaleX(-1);
+      }
+
+      @keyframes handPulse {
+        0%,
+        100% {
+          transform: translateY(-50%) scale(1);
+        }
+        50% {
+          transform: translateY(-50%) scale(1.07);
+        }
+      }
+
+      @keyframes handPulseRight {
+        0%,
+        100% {
+          transform: translateY(-50%) scaleX(-1) scale(1);
+        }
+        50% {
+          transform: translateY(-50%) scaleX(-1) scale(1.07);
+        }
+      }
+
+      .hand.right,
+      .hand.right::after {
+        animation-delay: 0.45s;
+      }
+
+      @keyframes handRing {
+        0%,
+        100% {
+          transform: scale(0.92);
+          opacity: 0.58;
+        }
+        50% {
+          transform: scale(1.03);
+          opacity: 1;
+        }
+      }
+
+      /* Countdown overlay */
+      #countdownOverlay {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        z-index: 5;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 300ms ease;
+        background: radial-gradient(
+          circle,
+          rgba(0, 0, 0, 0.12),
+          rgba(0, 0, 0, 0.4)
+        );
+        color: #fff4fb;
+        text-shadow: 0 0 20px rgba(255, 132, 189, 0.75);
+        font-size: clamp(74px, 18vw, 200px);
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      #countdownOverlay.show {
+        opacity: 1;
+      }
+
+      #boomOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 6;
+        pointer-events: none;
+        opacity: 0;
+        background:
+          radial-gradient(
+            circle at center,
+            rgba(255, 225, 241, 0.95) 0%,
+            rgba(255, 132, 189, 0.55) 18%,
+            rgba(9, 4, 15, 0) 60%
+          ),
+          radial-gradient(
+            circle at center,
+            rgba(255, 255, 255, 0.85) 0%,
+            rgba(255, 255, 255, 0) 44%
+          );
+        mix-blend-mode: screen;
+      }
+
+      #boomOverlay.show {
+        animation: boomPulse var(--boom-ms) ease-out forwards;
+      }
+
+      @keyframes boomPulse {
+        0% {
+          opacity: 0;
+          transform: scale(0.65);
+        }
+        18% {
+          opacity: 1;
+          transform: scale(1.18);
+        }
+        55% {
+          opacity: 0.78;
+          transform: scale(1.5);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.95);
+        }
+      }
+
+      /* SCENE 2 */
+      #scene2 {
+        background: #000;
+        z-index: 1;
+        overflow: hidden;
+      }
+
+      #scene2::before {
+        content: "";
+        position: absolute;
+        inset: -15%;
+        z-index: 0;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(255, 78, 154, 0.22), transparent 42%),
+          radial-gradient(circle at 80% 18%, rgba(90, 225, 255, 0.18), transparent 40%),
+          radial-gradient(circle at 50% 78%, rgba(255, 240, 90, 0.15), transparent 44%),
+          radial-gradient(circle at 50% 50%, rgba(255, 120, 190, 0.12), rgba(8, 4, 12, 0.9) 64%);
+        filter: blur(6px) saturate(108%);
+        animation: auroraDrift 18s ease-in-out infinite alternate;
+      }
+
+      #scene2::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background-image:
+          radial-gradient(circle at 15% 30%, rgba(255, 255, 255, 0.2) 0 1px, transparent 2px),
+          radial-gradient(circle at 70% 40%, rgba(255, 230, 250, 0.18) 0 1px, transparent 2px),
+          radial-gradient(circle at 50% 70%, rgba(180, 240, 255, 0.15) 0 1px, transparent 2px);
+        background-size: 220px 220px, 260px 260px, 300px 300px;
+        opacity: 0.38;
+        animation: sparkleDrift 20s linear infinite;
+      }
+
+      #scene2 canvas {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+        display: block;
+        transform-origin: center center;
+        animation: outerHeartBeat 1.1s ease infinite;
+        filter: drop-shadow(0 0 5px rgba(255, 148, 204, 0.28));
+      }
+
+      #scene2 #content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--scene2-text);
+        font-size: 20px;
+        z-index: 1;
+      }
+
+      #scene2 img,
+      #scene2 .heart {
+        animation: heart 1s ease infinite;
+      }
+
+      @keyframes heart {
+        0% {
+          transform: scale(1);
+        }
+        40% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      #scene2 .container {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        z-index: 1;
+      }
+
+      #scene2 .bubbles {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      #scene2 .bubbles span {
+        position: absolute;
+        left: calc(var(--x, 50) * 1%);
+        bottom: -12vh;
+        color: #4fc3dc;
+        margin: 0;
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 3px #4fc3dc3a,
+          0 0 22px #4fc3dc;
+        animation: bubble 15s linear infinite;
+        animation-duration: calc(60s / var(--i));
+        animation-delay: var(--delay, 0s);
+        opacity: var(--alpha, 0.9);
+        font-size: var(--size, 1rem);
+        filter: none;
+      }
+
+      @keyframes bubble {
+        0% {
+          transform: translateY(0) scale(0.85) rotate(0deg);
+          opacity: 0;
+        }
+        8% {
+          opacity: var(--alpha, 0.9);
+        }
+        100% {
+          transform: translateY(-120vh) scale(1.18) rotate(8deg);
+          opacity: 0;
+        }
+      }
+
+      #scene2 .bubbles span:nth-child(even) {
+        color: #ff2d75;
+        box-shadow:
+          0 0 0 3px #ff2d7538,
+          0 0 24px #ff2d75;
+      }
+
+      #scene2 .bubbles span:nth-child(3n) {
+        color: #f0ff20;
+        box-shadow:
+          0 0 0 3px #f0ff2038,
+          0 0 24px #f0ff2052;
+      }
+
+      #scene2 .heart {
+        width: 100%;
+        height: 100%;
+        font-size: 20vw;
+        background-size: 100%;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 1px #fab6d3;
+        filter:
+          drop-shadow(0 0 8px rgba(255, 159, 206, 0.38))
+          drop-shadow(0 0 16px rgba(255, 72, 150, 0.16));
+      }
+
+      @keyframes outerHeartBeat {
+        0%,
+        100% {
+          transform: scale(1);
+          filter: drop-shadow(0 0 8px rgba(255, 148, 204, 0.35));
+        }
+        40% {
+          transform: scale(1.2);
+          filter: drop-shadow(0 0 14px rgba(255, 160, 210, 0.48));
+        }
+      }
+
+      @media (max-width: 768px) {
+        #scene2::before,
+        #scene2::after {
+          animation: none;
+          opacity: 0.24;
+          filter: none;
+        }
+
+        #scene2 canvas {
+          animation-duration: 1.2s;
+          filter: none;
+        }
+      }
+
+      @keyframes auroraDrift {
+        0% {
+          transform: translate3d(-2%, -2%, 0) scale(1);
+        }
+        100% {
+          transform: translate3d(2%, 2%, 0) scale(1.06);
+        }
+      }
+
+      @keyframes sparkleDrift {
+        0% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 0.7;
+        }
+        100% {
+          transform: translateY(-16px);
+          opacity: 0.45;
+        }
+      }
+
+      #scene2.boom-enter {
+        animation: scene2Boom var(--boom-ms) cubic-bezier(0.14, 0.7, 0.2, 1)
+          both;
+        transform-origin: center center;
+      }
+
+      @keyframes scene2Boom {
+        0% {
+          transform: scale(0.88);
+          filter: blur(8px) brightness(1.15);
+        }
+        34% {
+          transform: scale(1.06);
+          filter: blur(2px) brightness(1.1);
+        }
+        100% {
+          transform: scale(1);
+          filter: blur(0) brightness(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section id="scene1" class="scene is-visible">
+      <div class="scene1-stage">
+        <css-doodle use="var(--rule)" seed="heart-seed"></css-doodle>
+        <div class="scene1-ui">
+          <div class="hand left"><span class="palm"><i class="fa-solid fa-hand"></i></span></div>
+          <div class="hand right"><span class="palm"><i class="fa-solid fa-hand"></i></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="scene2" class="scene is-hidden">
+      <canvas id="pinkboard"></canvas>
+      <div id="content">
+        <i class="fa-solid fa-heart heart"></i>
+      </div>
+      <div class="container">
+        <div class="bubbles" id="bubbles"></div>
+      </div>
+    </section>
+
+    <div id="countdownOverlay">5</div>
+    <div id="boomOverlay"></div>
+
+    <script src="https://unpkg.com/css-doodle@0.15.3/css-doodle.min.js"></script>
+    <script>
+      const scene1 = document.getElementById("scene1");
+      const scene2 = document.getElementById("scene2");
+      const overlay = document.getElementById("countdownOverlay");
+      const boomOverlay = document.getElementById("boomOverlay");
+      const doodle = document.querySelector("#scene1 css-doodle");
+      const bubbles = document.getElementById("bubbles");
+      const lowPerfDevice =
+        window.matchMedia("(max-width: 768px)").matches ||
+        (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+
+      let started = false;
+      let spinRaf = 0;
+      let inputLocked = true;
+
+      setTimeout(() => {
+        inputLocked = false;
+      }, 500);
+
+      function createBubbles() {
+        const speeds = [
+          11, 25, 12, 54, 18, 29, 18, 11, 15, 18, 29, 54, 48, 29, 25, 79, 12, 2,
+          9, 16, 8, 5, 7, 24, 21, 36, 10, 27, 14, 33, 19, 28, 13, 40, 16, 26,
+        ];
+        const count = lowPerfDevice ? 32 : 46;
+        for (let i = 0; i < count; i++) {
+          const speed = speeds[i % speeds.length];
+          const span = document.createElement("span");
+          span.style.setProperty("--i", String(speed));
+          span.style.setProperty("--x", (Math.random() * 100).toFixed(2));
+          span.style.setProperty("--delay", `${(-Math.random() * 18).toFixed(2)}s`);
+          span.style.setProperty("--size", `${(0.72 + Math.random() * 0.9).toFixed(2)}rem`);
+          span.style.setProperty("--alpha", `${(0.55 + Math.random() * 0.4).toFixed(2)}`);
+          span.innerHTML = '<i class="fa-solid fa-heart"></i>';
+          bubbles.appendChild(span);
+        }
+      }
+
+      function countdown(from) {
+        return new Promise((resolve) => {
+          let current = from;
+          overlay.textContent = String(current);
+          overlay.classList.add("show");
+          const timer = setInterval(() => {
+            current -= 1;
+            overlay.textContent = String(Math.max(current, 0));
+            if (current <= 0) {
+              clearInterval(timer);
+              setTimeout(() => resolve(), 380);
+            }
+          }, 1000);
+        });
+      }
+
+      function stopCountdownSpin() {
+        if (spinRaf) {
+          cancelAnimationFrame(spinRaf);
+          spinRaf = 0;
+        }
+      }
+
+      function startCountdownSpin(totalMs) {
+        stopCountdownSpin();
+        const startTime = performance.now();
+
+        function tick(now) {
+          const elapsed = now - startTime;
+          const progress = Math.min(elapsed / totalMs, 1);
+
+          // Accelerate inside css-doodle itself: shorter cycle + deeper Z travel.
+          const durationSec = 12 - 9.2 * Math.pow(progress, 1.5); // 12s -> ~2.8s
+          const depthVmin = 35 + 28 * Math.pow(progress, 1.25); // 35 -> 63
+          if (doodle) {
+            doodle.style.setProperty("--flow-dur", `${durationSec.toFixed(3)}s`);
+            doodle.style.setProperty("--flow-depth", `${depthVmin.toFixed(2)}vmin`);
+          }
+
+          if (progress < 1) {
+            spinRaf = requestAnimationFrame(tick);
+          } else {
+            spinRaf = 0;
+          }
+        }
+
+        spinRaf = requestAnimationFrame(tick);
+      }
+
+      async function beginTransition() {
+        if (started) return;
+        started = true;
+        try {
+          startCountdownSpin(6000);
+          await countdown(5);
+          stopCountdownSpin();
+          boomOverlay.classList.add("show");
+          overlay.classList.remove("show");
+          scene1.classList.remove("is-visible");
+          scene1.classList.add("is-hidden");
+          scene2.classList.remove("is-hidden");
+          scene2.classList.add("is-visible");
+          scene2.classList.add("boom-enter");
+          setTimeout(startScene2, 100);
+          setTimeout(() => {
+            boomOverlay.classList.remove("show");
+            scene2.classList.remove("boom-enter");
+            if (doodle) {
+              doodle.style.setProperty("--flow-dur", "12s");
+              doodle.style.setProperty("--flow-depth", "35vmin");
+            }
+          }, 760);
+        } catch (error) {
+          // Fallback: never leave user on a blank screen.
+          console.error("Transition failed:", error);
+          stopCountdownSpin();
+          started = false;
+          overlay.classList.remove("show");
+          boomOverlay.classList.remove("show");
+          scene2.classList.remove("is-visible");
+          scene2.classList.add("is-hidden");
+          scene1.classList.remove("is-hidden");
+          scene1.classList.add("is-visible");
+        }
+      }
+
+      document.addEventListener("keydown", (event) => {
+        if (inputLocked) {
+          if (event.code === "Space") event.preventDefault();
+          return;
+        }
+        if (event.code === "Space") {
+          event.preventDefault();
+          beginTransition();
+          return;
+        }
+        if (event.code === "Enter") {
+          event.preventDefault();
+          window.location.reload();
+        }
+      });
+
+      // Mobile/touch trigger: tap screen to start, same as Space.
+      scene1.addEventListener("pointerdown", () => {
+        if (inputLocked) return;
+        if (!started && scene1.classList.contains("is-visible")) {
+          beginTransition();
+        }
+      });
+
+      function startScene2() {
+        if (startScene2.started) return;
+        startScene2.started = true;
+        createBubbles();
+
+        const settings = {
+          particles: {
+            length: lowPerfDevice ? 3200 : 4600,
+            duration: 3,
+            velocity: lowPerfDevice ? 165 : 180,
+            effect: -0.6,
+            size: lowPerfDevice ? 11 : 12,
+          },
+        };
+
+        const Point = (function () {
+          function Point(x, y) {
+            this.x = typeof x !== "undefined" ? x : 0;
+            this.y = typeof y !== "undefined" ? y : 0;
+          }
+          Point.prototype.clone = function () {
+            return new Point(this.x, this.y);
+          };
+          Point.prototype.length = function (length) {
+            if (typeof length === "undefined")
+              return Math.sqrt(this.x * this.x + this.y * this.y);
+            this.normalize();
+            this.x *= length;
+            this.y *= length;
+            return this;
+          };
+          Point.prototype.normalize = function () {
+            const length = this.length();
+            this.x /= length;
+            this.y /= length;
+            return this;
+          };
+          return Point;
+        })();
+
+        const Particle = (function () {
+          function Particle() {
+            this.position = new Point();
+            this.velocity = new Point();
+            this.acceleration = new Point();
+            this.age = 0;
+          }
+          Particle.prototype.initialize = function (x, y, dx, dy) {
+            this.position.x = x;
+            this.position.y = y;
+            this.velocity.x = dx;
+            this.velocity.y = dy;
+            this.acceleration.x = dx * settings.particles.effect;
+            this.acceleration.y = dy * settings.particles.effect;
+            this.age = 0;
+          };
+          Particle.prototype.update = function (deltaTime) {
+            this.position.x += this.velocity.x * deltaTime;
+            this.position.y += this.velocity.y * deltaTime;
+            this.velocity.x += this.acceleration.x * deltaTime;
+            this.velocity.y += this.acceleration.y * deltaTime;
+            this.age += deltaTime;
+          };
+          Particle.prototype.draw = function (context, image) {
+            function ease(t) {
+              return --t * t * t + 1;
+            }
+            const size =
+              image.width * ease(this.age / settings.particles.duration);
+            context.globalAlpha = 1 - this.age / settings.particles.duration;
+            context.drawImage(
+              image,
+              this.position.x - size / 2,
+              this.position.y - size / 2,
+              size,
+              size,
+            );
+          };
+          return Particle;
+        })();
+
+        const ParticlePool = (function () {
+          let particles;
+          let firstActive = 0;
+          let firstFree = 0;
+          const duration = settings.particles.duration;
+
+          function ParticlePool(length) {
+            particles = new Array(length);
+            for (let i = 0; i < particles.length; i++)
+              particles[i] = new Particle();
+          }
+
+          ParticlePool.prototype.add = function (x, y, dx, dy) {
+            particles[firstFree].initialize(x, y, dx, dy);
+            firstFree++;
+            if (firstFree === particles.length) firstFree = 0;
+            if (firstActive === firstFree) firstActive++;
+            if (firstActive === particles.length) firstActive = 0;
+          };
+
+          ParticlePool.prototype.update = function (deltaTime) {
+            let i;
+            if (firstActive < firstFree) {
+              for (i = firstActive; i < firstFree; i++)
+                particles[i].update(deltaTime);
+            }
+            if (firstFree < firstActive) {
+              for (i = firstActive; i < particles.length; i++)
+                particles[i].update(deltaTime);
+              for (i = 0; i < firstFree; i++) particles[i].update(deltaTime);
+            }
+            while (
+              particles[firstActive].age >= duration &&
+              firstActive !== firstFree
+            ) {
+              firstActive++;
+              if (firstActive === particles.length) firstActive = 0;
+            }
+          };
+
+          ParticlePool.prototype.draw = function (context, image) {
+            let i;
+            if (firstActive < firstFree) {
+              for (i = firstActive; i < firstFree; i++)
+                particles[i].draw(context, image);
+            }
+            if (firstFree < firstActive) {
+              for (i = firstActive; i < particles.length; i++)
+                particles[i].draw(context, image);
+              for (i = 0; i < firstFree; i++) particles[i].draw(context, image);
+            }
+          };
+          return ParticlePool;
+        })();
+
+        (function (canvas) {
+          const context = canvas.getContext("2d");
+          const particles = new ParticlePool(settings.particles.length);
+          const particleRate =
+            settings.particles.length / settings.particles.duration;
+          let time;
+
+          function pointOnHeart(t) {
+            return new Point(
+              160 * Math.pow(Math.sin(t), 3),
+              130 * Math.cos(t) -
+                50 * Math.cos(2 * t) -
+                20 * Math.cos(3 * t) -
+                10 * Math.cos(4 * t) +
+                25,
+            );
+          }
+
+          const image = (function () {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = settings.particles.size;
+            canvas.height = settings.particles.size;
+            function to(t) {
+              const point = pointOnHeart(t);
+              point.x =
+                settings.particles.size / 3 +
+                (point.x * settings.particles.size) / 550;
+              point.y =
+                settings.particles.size / 3 -
+                (point.y * settings.particles.size) / 550;
+              return point;
+            }
+            context.beginPath();
+            let t = -Math.PI;
+            let point = to(t);
+            context.moveTo(point.x, point.y);
+            while (t < Math.PI) {
+              t += 0.01;
+              point = to(t);
+              context.lineTo(point.x, point.y);
+            }
+            context.closePath();
+            context.fillStyle = "#ea80b0";
+            context.fill();
+            const image = new Image();
+            image.src = canvas.toDataURL();
+            return image;
+          })();
+
+          function render() {
+            requestAnimationFrame(render);
+            const newTime = new Date().getTime() / 800;
+            const deltaTime = newTime - (time || newTime);
+            time = newTime;
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            const amount = particleRate * deltaTime;
+            for (let i = 0; i < amount; i++) {
+              const pos = pointOnHeart(Math.PI - 2 * Math.PI * Math.random());
+              const dir = pos.clone().length(settings.particles.velocity);
+              particles.add(
+                canvas.width / 2 + pos.x,
+                canvas.height / 2 - pos.y,
+                dir.x,
+                -dir.y,
+              );
+            }
+            particles.update(deltaTime);
+            particles.draw(context, image);
+          }
+
+          function onResize() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+          }
+
+          window.addEventListener("resize", onResize);
+          setTimeout(() => {
+            onResize();
+            render();
+          }, 30);
+        })(document.getElementById("pinkboard"));
+      }
+    </script>
+  </body>
+</html>
