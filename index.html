@@ -567,10 +567,11 @@
       const lowPerfDevice =
         window.matchMedia("(max-width: 768px)").matches ||
         (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+      const ultraLowPerf =
+        lowPerfDevice || (navigator.deviceMemory && navigator.deviceMemory <= 4);
 
       let started = false;
       let spinRaf = 0;
-      let spinInterval = 0;
       let inputLocked = true;
 
       setTimeout(() => {
@@ -582,7 +583,7 @@
           11, 25, 12, 54, 18, 29, 18, 11, 15, 18, 29, 54, 48, 29, 25, 79, 12, 2,
           9, 16, 8, 5, 7, 24, 21, 36, 10, 27, 14, 33, 19, 28, 13, 40, 16, 26,
         ];
-        const count = lowPerfDevice ? 32 : 46;
+        const count = ultraLowPerf ? 24 : 36;
         for (let i = 0; i < count; i++) {
           const speed = speeds[i % speeds.length];
           const span = document.createElement("span");
@@ -617,32 +618,36 @@
           cancelAnimationFrame(spinRaf);
           spinRaf = 0;
         }
-        if (spinInterval) {
-          clearInterval(spinInterval);
-          spinInterval = 0;
-        }
       }
 
       function startCountdownSpin(totalMs) {
         stopCountdownSpin();
         const startTime = performance.now();
-        const applySpin = () => {
-          const elapsed = performance.now() - startTime;
-          const progress = Math.min(elapsed / totalMs, 1);
+        let lastAppliedAt = 0;
 
-          // Accelerate inside css-doodle itself: shorter cycle + deeper Z travel.
-          const durationSec = 12 - 9.2 * Math.pow(progress, 1.5); // 12s -> ~2.8s
-          const depthVmin = 35 + 28 * Math.pow(progress, 1.25); // 35 -> 63
-          if (doodle) {
-            doodle.style.setProperty("--flow-dur", `${durationSec.toFixed(3)}s`);
-            doodle.style.setProperty("--flow-depth", `${depthVmin.toFixed(2)}vmin`);
+        const tick = (now) => {
+          const elapsed = now - startTime;
+          const progress = Math.min(elapsed / totalMs, 1);
+          if (now - lastAppliedAt >= 34 || progress >= 1) {
+            lastAppliedAt = now;
+
+            // Smooth acceleration with capped updates (~30fps) for stable rendering.
+            const durationSec = 12 - 9.2 * Math.pow(progress, 1.5); // 12s -> ~2.8s
+            const depthVmin = 35 + 28 * Math.pow(progress, 1.25); // 35 -> 63
+            if (doodle) {
+              doodle.style.setProperty("--flow-dur", `${durationSec.toFixed(3)}s`);
+              doodle.style.setProperty("--flow-depth", `${depthVmin.toFixed(2)}vmin`);
+            }
           }
-          if (progress >= 1) stopCountdownSpin();
+
+          if (progress < 1) {
+            spinRaf = requestAnimationFrame(tick);
+          } else {
+            spinRaf = 0;
+          }
         };
 
-        // Lower update frequency to avoid intermittent compositing glitches.
-        applySpin();
-        spinInterval = setInterval(applySpin, 120);
+        spinRaf = requestAnimationFrame(tick);
       }
 
       async function beginTransition() {
@@ -713,11 +718,11 @@
 
         const settings = {
           particles: {
-            length: lowPerfDevice ? 3200 : 4600,
+            length: ultraLowPerf ? 2200 : 3200,
             duration: 3,
-            velocity: lowPerfDevice ? 165 : 180,
+            velocity: ultraLowPerf ? 155 : 170,
             effect: -0.6,
-            size: lowPerfDevice ? 11 : 12,
+            size: ultraLowPerf ? 10 : 11,
           },
         };
 
@@ -895,10 +900,10 @@
           function render() {
             requestAnimationFrame(render);
             const newTime = new Date().getTime() / 800;
-            const deltaTime = newTime - (time || newTime);
+            const deltaTime = Math.min(newTime - (time || newTime), 0.033);
             time = newTime;
             context.clearRect(0, 0, canvas.width, canvas.height);
-            const amount = particleRate * deltaTime;
+            const amount = Math.min(particleRate * deltaTime, ultraLowPerf ? 56 : 84);
             for (let i = 0; i < amount; i++) {
               const pos = pointOnHeart(Math.PI - 2 * Math.PI * Math.random());
               const dir = pos.clone().length(settings.particles.velocity);
